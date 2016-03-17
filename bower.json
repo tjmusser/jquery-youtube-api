@@ -1,0 +1,16 @@
+{
+  "name": "youtube-api-final",
+  "authors": [
+    "Brett Senna <brettsenna@mac.com>"
+  ],
+  "description": "YouTube API Project",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "homepage": "http://www.digital01media.com",
+  "private": true,
+  "dependencies": {
+    "bootstrap": "^3.3.6",
+    "moment": "^2.12.0"
+  }
+}
