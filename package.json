@@ -1,0 +1,25 @@
+{
+    "name": "jquery-youtube-api-master",
+    "version": "1.0.0",
+    "description": "jQuery YouTube API Web App",
+    "main": "gulpfile.js",
+    "dependencies": {
+        "lodash": "^4.7.0",
+        "wiredep": "^4.0.0"
+    },
+    "devDependencies": {
+        "browser-sync": "^2.11.2",
+        "gulp": "^3.9.1",
+        "gulp-ruby-sass": "^2.0.6"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "scripts": {
+        "preinstall": "bower install",
+        "postinstall": "gulp sass",
+        "start": "gulp serve"
+    }
+}

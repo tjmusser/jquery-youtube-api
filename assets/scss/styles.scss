@@ -1,0 +1,36 @@
+$border-color: #333;
+$lightgrey:    #ccc;
+$youtubered:   #bb0000;
+
+h1, 
+h2, 
+h3, 
+h4, 
+h5, 
+h6 { color: $youtubered; }
+
+.thumbnail-link > img {
+    display: block;
+    margin: auto;
+}
+
+.thumbnail-link > img:hover, 
+.detail-title-list:hover, 
+.detail-view-action:hover { cursor: pointer; }
+
+.detail-view{ display: none; }
+
+.back-button {
+    display: block;
+    font-size: 18px;
+    margin-top: 10px;
+    text-decoration: underline;
+}
+
+.video_item {
+    background: $lightgrey;
+    border: 1px solid $border-color;
+    border-radius: 4px; 
+    margin: 10px 0px;
+    padding: 10px; 
+}
