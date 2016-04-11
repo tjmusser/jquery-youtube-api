@@ -1,11 +1,8 @@
 $(document).ready(function () {
 
-    // Global defaults
-    var maxLength = 300,
-        callContent = $('.video_item');
+    var hashSet = new Playlist();
 
     if (window.history && window.history.pushState) {
-
         $(window).on('popstate', function () {
             var hashLocation = location.hash;
             var hashSplit = hashLocation.split("#/");
@@ -14,78 +11,51 @@ $(document).ready(function () {
             if (hashName === '') {
                 $(".detail-view").hide();
                 $("#thumbnailslist").show();
-                setHash('');
+                hashSet.setHash('');
             }
         });
-        
-    }
-    
-    // Search through ajax response for specific video
-    function SearchObj(obj, query) {
-        this.itemData;
-
-        for (var key in obj) {
-            if (typeof obj[key] === 'object') {
-                SearchObj(obj[key], query);
-            }
-
-            if (obj[key] == query) {
-                itemData = obj;
-                return false;
-            }
-        }
-        return this.itemData;
     }
 
-    // Get URL hash and set content based on hash
-    function getHash(ajaxResp) {
-        var page = window.location.href,
-            page = page.replace(/%20/g, ' ');
-
-        if (page.indexOf('#') >= 0) {
-            pInfo = page.split('/#/');
-
-            if (pInfo[1].length > 0) {
-                var itemData = SearchObj(ajaxResp, pInfo[1]),
-                    date = moment(itemData.publishedAt).format('LL'),
-                    desc = itemData.description,
-                    title = itemData.title,
-                    iframesrc = itemData.resourceId.videoId;
-
-                setContent(desc, title, date, iframesrc);
-            }
-        } else {
-            setHash('');
-        }
+    function Playlist(dataObj) {
+        this.callContent = $('.video_item');
+        this.truncateText = '...';
+        this.maxLength = 300;
+        this.dataObj = dataObj;
+        this.nodesc = "<strong> Sorry, there is no description for this video.</strong>";
+        this.desc = null;
+        this.itemData = null;
+        this.page = window.location.href;
     }
 
-    // Window hash
-    function setHash(location) {
+    Playlist.prototype.setHash = function (location) {
+        var location = decodeURIComponent(location);
         window.location.hash = '/' + location;
     }
 
-    // Verify existence of description 
-    function checkDesc(desc) {
-        if (desc.length == 0) {
-            desc = "<strong> Sorry, there is no description for this video.</strong>";
+    Playlist.prototype.checkDesc = function (desc) {
+        if (desc.length === 0) {
+            this.desc = this.nodesc;
+        } else {
+            this.desc = desc;
         }
-        return desc;
+        return this.desc;
     }
 
-    // Truncate description
-    function trucateDesc(desc) {
-        if (desc.length > maxLength) {
-            desc = desc.substring(0, maxLength) + "...";
+    Playlist.prototype.trucateDesc = function (desc) {
+        if (desc.length > this.maxLength) {
+            this.desc = desc.substring(0, this.maxLength) + this.truncateText;
+        } else {
+            this.desc = desc;
         }
-        return desc;
+        return this.desc;
     }
 
-    // Set individual item content and set hash
-    function setContent(description, title, date, iframesrc, hash) {
+    Playlist.prototype.setContent = function (description, title, date, iframesrc, hash) {
         if (hash) {
-            setHash(title);
+            this.setHash(title);
         }
-        $(".detail-view-item .full-description").html(checkDesc(description));
+
+        $(".detail-view-item .full-description").html(this.checkDesc(description));
         $(".detail-view-item .detail-title").html(title);
         $(".detail-view-item .detailed-date").html(date);
         $(".detail-view-item .video-link").attr("src", "http://www.youtube.com/embed/" + iframesrc);
@@ -93,55 +63,98 @@ $(document).ready(function () {
         $("#thumbnailslist").hide();
     }
 
+    Playlist.prototype.searchObj = function (obj, query) {
+        var q = decodeURIComponent(query);
+
+        for (var key in obj) {
+            if (typeof obj[key] === 'object') {
+                this.searchObj(obj[key], q);
+            }
+            
+            if (obj[key] == q) {
+                this.itemData = obj;
+                return false;
+            }
+        }
+        return this.itemData;
+    }
+
+    Playlist.prototype.getHash = function () {
+        this.page = this.page.replace(/%20/g, ' ');
+
+        if (this.page.indexOf('#') >= 0) {
+            pInfo = this.page.split('/#/');
+
+            if (pInfo[1].length > 0) {
+                this.searchObj(this.dataObj, pInfo[1]);
+                var date = moment(this.itemData.publishedAt).format('LL'),
+                    desc = this.itemData.description,
+                    title = this.itemData.title,
+                    iframesrc = this.itemData.resourceId.videoId;
+
+                this.setContent(desc, title, date, iframesrc);
+            }
+        } else {
+            this.setHash('');
+        }
+    }
+
+    Playlist.prototype.bindEvents = function (thumbnail, detailTitleList, description, title, date, iframesrc, hash) {
+        var self = this;
+        thumbnail.click(function (e) {
+            e.preventDefault();
+            self.setContent(description, title, date, iframesrc, hash);
+        });
+
+        detailTitleList.click(function (e) {
+            e.preventDefault();
+            self.setContent(description, title, date, iframesrc, hash);
+        });
+    }
+
+    Playlist.prototype.buildPlaylist = function () {
+        var self = this;
+
+        $.each(this.dataObj.items, function (i, v) {
+            var snippet = this.snippet,
+                title = self.title,
+                thumbnail = i !== 0 ? self.callContent = $('.video_item').first().clone() : self.callContent.find('.thumbnail'),
+                detailTitleList = self.callContent.find('.detail-title-list'),
+                date = moment(snippet.publishedAt).format('LL'),
+                title = snippet.title,
+                description = self.checkDesc(snippet.description),
+                iframesrc = snippet.resourceId.videoId;
+
+            // Set item content
+            self.callContent.find('.title').html(title);
+            self.callContent.find('.date').html(date);
+            self.callContent.find('.description_truncate').html(self.trucateDesc(description));
+
+            // Update thumbnail
+            thumbnail = self.callContent.find('.thumbnail');
+
+            //thumbnail
+            thumbnail
+                .attr('src', snippet.thumbnails.high.url)
+                .attr('title', title)
+                .attr('alt', title);
+
+            self.bindEvents(thumbnail, detailTitleList, description, title, date, iframesrc, true);
+
+            // Append content for each item in loop
+            $('.playlist > .row').append(self.callContent);
+        });
+    }
+
     // Request data
     $.ajax({
         url: 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails,status&maxResults=10&playlistId=PLSi28iDfECJPJYFA4wjlF5KUucFvc0qbQ&key=AIzaSyCuv_16onZRx3qHDStC-FUp__A6si-fStw',
         dataType: 'jsonp',
-        success: function (youtubeContent) {
-
+        success: function (response) {
             // Set page content based upon url after response
-            getHash(youtubeContent);
-
-            // Build playlist items
-            $.each(youtubeContent.items, function (i, v) {
-                var self = this.snippet,
-                    title = self.title,
-                    thumbnail = i !== 0 ? callContent = $('.video_item').first().clone() : callContent.find('.thumbnail'),
-                    detailTitleList = callContent.find('.detail-title-list'),
-                    date = moment(self.publishedAt).format('LL'),
-                    title = self.title,
-                    description = checkDesc(self.description),
-                    iframesrc = self.resourceId.videoId;
-
-
-                // Set item content
-                callContent.find('.title').html(title);
-                callContent.find('.date').html(date);
-                callContent.find('.description_truncate').html(trucateDesc(description));
-
-                // Update thumbnail
-                thumbnail = callContent.find('.thumbnail');
-
-                //thumbnail
-                thumbnail
-                    .attr('src', self.thumbnails.high.url)
-                    .attr('title', title)
-                    .attr('alt', title);
-
-                // Click events
-                thumbnail.click(function (e) {
-                    e.preventDefault();
-                    setContent(description, title, date, iframesrc, true);
-                });
-
-                detailTitleList.click(function (e) {
-                    e.preventDefault();
-                    setContent(description, title, date, iframesrc, true);
-                });
-
-                // Append content for each item in loop
-                $('.playlist > .row').append(callContent);
-            });
+            var playlist = new Playlist(response);
+            playlist.getHash();
+            playlist.buildPlaylist();
         }
     });
 
@@ -150,6 +163,6 @@ $(document).ready(function () {
         e.preventDefault();
         $(".detail-view").hide();
         $("#thumbnailslist").show();
-        setHash('');
+        hashSet.setHash('');
     });
 });
